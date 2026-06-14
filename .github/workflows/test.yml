@@ -1,14 +1,20 @@
 name: test
 
+# Manual only — the user runs this from the Actions tab or via
+# `gh workflow run test.yml`. Nothing runs on push or pull_request.
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
+      run_bash_tests:
+        description: 'Run bash test suite (Linux + macOS + Windows)'
+        required: false
+        default: 'true'
+      run_powershell_tests:
+        description: 'Run PowerShell wrapper test (Windows only)'
+        required: false
+        default: 'true'
       run_shellcheck:
-        description: 'Run shellcheck lint (manual)'
+        description: 'Run shellcheck lint (Linux + macOS)'
         required: false
         default: 'false'
 
@@ -21,6 +27,7 @@ jobs:
   # ----------------------------------------------------------------------
   test-bash:
     name: bash tests (${{ matrix.os }})
+    if: inputs.run_bash_tests == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -73,6 +80,7 @@ jobs:
   # ----------------------------------------------------------------------
   test-powershell:
     name: powershell wrapper (windows-latest)
+    if: inputs.run_powershell_tests == 'true'
     runs-on: windows-latest
     defaults:
       run:
@@ -129,7 +137,7 @@ jobs:
   # ----------------------------------------------------------------------
   lint-shellcheck:
     name: shellcheck (${{ matrix.os }})
-    if: github.event_name == 'workflow_dispatch' && inputs.run_shellcheck == 'true'
+    if: inputs.run_shellcheck == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -150,19 +158,29 @@ jobs:
   # Final summary
   # ----------------------------------------------------------------------
   all-passed:
-    name: all checks passed
+    name: summary
     runs-on: ubuntu-latest
-    needs: [test-bash, test-powershell]
+    needs: [test-bash, test-powershell, lint-shellcheck]
     if: ${{ always() }}
     steps:
-      - name: Verify all jobs passed
+      - name: Summarize results
         run: |
-          if [ "${{ needs.test-bash.result }}" != "success" ]; then
-            echo "::error::test-bash failed: ${{ needs.test-bash.result }}"
+          echo "=== CI summary ==="
+          echo "test-bash (Linux/macOS/Windows):     ${{ needs.test-bash.result }}"
+          echo "test-powershell (Windows wrapper):   ${{ needs.test-powershell.result }}"
+          echo "lint-shellcheck (Linux/macOS lint):  ${{ needs.lint-shellcheck.result }}"
+          echo ""
+          # Fail only if a job that actually ran failed.
+          if [ "${{ needs.test-bash.result }}" = "failure" ] || [ "${{ needs.test-bash.result }}" = "cancelled" ]; then
+            echo "::error::test-bash failed"
             exit 1
           fi
-          if [ "${{ needs.test-powershell.result }}" != "success" ]; then
-            echo "::error::test-powershell failed: ${{ needs.test-powershell.result }}"
+          if [ "${{ needs.test-powershell.result }}" = "failure" ] || [ "${{ needs.test-powershell.result }}" = "cancelled" ]; then
+            echo "::error::test-powershell failed"
             exit 1
           fi
-          echo "✓ All CI jobs passed"
+          if [ "${{ needs.lint-shellcheck.result }}" = "failure" ]; then
+            echo "::error::lint-shellcheck failed"
+            exit 1
+          fi
+          echo "✓ CI completed (jobs marked 'skipped' were not requested)"
