@@ -196,9 +196,21 @@ make_symlink() {
 
   detect_os
 
-  # Remove existing link (if symlink) so we can recreate
+  # Safety guard: refuse to operate if dst is the source or contains it.
+  # We are about to potentially remove dst — never remove src.
+  case "$src" in
+    "$dst")        echo "  ! refuse: dst == src" >&2; return 1 ;;
+    "$dst"/*)      echo "  ! refuse: src is inside dst" >&2; return 1 ;;
+  esac
+
+  # Remove existing target (symlink OR directory) so we can recreate.
+  # Symlink: just remove the link (target stays intact).
+  # Directory: remove the whole dir (it's a fallback copy from a previous
+  # call without admin, and we want to replace it).
   if [ -L "$dst" ]; then
     rm -f "$dst"
+  elif [ -d "$dst" ]; then
+    rm -rf "$dst"
   fi
 
   case "${KENA_OS:-}" in

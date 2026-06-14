@@ -44,7 +44,9 @@ echo ""
 echo "Test 2: resolve_symlink on broken symlink returns something (BSD compat)"
 TMPDIR=$(mktemp -d)
 BROKEN="$TMPDIR/broken"
-ln -s "/nonexistent/path/that/does/not/exist" "$BROKEN"
+# Use make_symlink (which has cross-platform fallback) instead of ln -s,
+# which fails on Windows when /tmp/ doesn't support symlinks without admin.
+make_symlink "/nonexistent/path/that/does/not/exist" "$BROKEN" 2>/dev/null || true
 broken_resolved=$(resolve_symlink "$BROKEN" 2>/dev/null || true)
 if [ -n "$broken_resolved" ]; then
   echo "  [PASS] resolve_symlink on broken link: $broken_resolved"
