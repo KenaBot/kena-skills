@@ -22,7 +22,8 @@ detect_os() {
 
   local uname_s
   uname_s="$(uname -s 2>/dev/null || echo unknown)"
-  uname_s="${uname_s,,}"
+  # POSIX-portable lowercase (works on bash 3.2 / macOS default)
+  uname_s=$(echo "$uname_s" | tr '[:upper:]' '[:lower:]')
 
   # WSL detection: /proc/version contains "Microsoft" or "WSL"
   if [ -n "${WSL_DISTRO_NAME:-}" ] || [ -n "${WSLENV:-}" ]; then
@@ -206,14 +207,26 @@ make_symlink() {
       return $?
       ;;
     windows)
-      # Try cmd /c mklink /D (requires admin or Developer Mode)
-      if cmd.exe /c "mklink /D \"$(cygpath -w "$dst")\" \"$(cygpath -w "$src")\"" >/dev/null 2>&1; then
+      # Strategy 1: try cmd /c mklink /D using bash-style paths directly
+      # (Git Bash translates /c/foo to C:\foo automatically in cmd.exe context)
+      if cmd.exe //c "mklink /D \"$(cygpath -w "$dst" 2>/dev/null || echo "$dst")\" \"$(cygpath -w "$src" 2>/dev/null || echo "$src")\"" >/dev/null 2>&1; then
         return 0
       fi
-      # Fallback: recursive copy
-      mkdir -p "$(dirname "$dst")"
-      cp -r "$src" "$dst"
-      return $?
+      # Strategy 2: try native cmd /c mklink with paths translated to Windows format
+      local src_win dst_win
+      src_win=$(echo "$src" | sed 's|^/\([a-zA-Z]\)/|\1:/|; s|/|\\|g' 2>/dev/null)
+      dst_win=$(echo "$dst" | sed 's|^/\([a-zA-Z]\)/|\1:/|; s|/|\\|g' 2>/dev/null)
+      if [ -n "$src_win" ] && [ -n "$dst_win" ]; then
+        if cmd.exe //c "mklink /D \"$dst_win\" \"$src_win\"" >/dev/null 2>&1; then
+          return 0
+        fi
+      fi
+      # Strategy 3: recursive copy (always works, no symlink but functional)
+      mkdir -p "$(dirname "$dst")" 2>/dev/null || return 1
+      if cp -r "$src" "$dst" 2>/dev/null; then
+        return 0
+      fi
+      return 1
       ;;
     *)
       ln -sfn "$src" "$dst"

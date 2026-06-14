@@ -11,7 +11,7 @@ source "$SCRIPT_DIR/../lib/platform.sh"
 PASS=0
 FAIL=0
 
-echo "Test 1: make_symlink replaces existing symlink"
+echo "Test 1: make_symlink replaces existing target"
 TMPDIR=$(mktemp -d)
 SRC1="$TMPDIR/src1"
 SRC2="$TMPDIR/src2"
@@ -20,14 +20,22 @@ mkdir -p "$SRC1" "$SRC2"
 echo "first" > "$SRC1/a.txt"
 echo "second" > "$SRC2/a.txt"
 make_symlink "$SRC1" "$DST"
-first_resolved=$(resolve_symlink "$DST")
+# Verify first link works (read file via target)
+first_ok=0
+if [ -f "$DST/a.txt" ] && [ "$(cat "$DST/a.txt")" = "first" ]; then
+  first_ok=1
+fi
 make_symlink "$SRC2" "$DST"
-second_resolved=$(resolve_symlink "$DST")
-if [ "$first_resolved" != "$second_resolved" ]; then
-  echo "  [PASS] make_symlink replaced symlink: $first_resolved -> $second_resolved"
+# Verify second link works
+second_ok=0
+if [ -f "$DST/a.txt" ] && [ "$(cat "$DST/a.txt")" = "second" ]; then
+  second_ok=1
+fi
+if [ "$first_ok" = "1" ] && [ "$second_ok" = "1" ]; then
+  echo "  [PASS] make_symlink replaced target (first->second both accessible)"
   PASS=$((PASS+1))
 else
-  echo "  [FAIL] make_symlink did not replace symlink"
+  echo "  [FAIL] make_symlink did not replace target (first_ok=$first_ok, second_ok=$second_ok)"
   FAIL=$((FAIL+1))
 fi
 rm -rf "$TMPDIR"

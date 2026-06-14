@@ -67,7 +67,10 @@ tui_confirm() {
         echo ""
         echo "  $prompt [y/n]: "
         read -r ans
-        case "${ans,,}" in
+        # POSIX-portable lowercase
+        local ans_lc
+        ans_lc=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
+        case "$ans_lc" in
           y|yes) echo "y"; return 0;;
           n|no) echo "n"; return 0;;
           *) echo "  Please answer y or n";;
