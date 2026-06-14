@@ -1,0 +1,162 @@
+name: test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ----------------------------------------------------------------------
+  # Bash test suite (Linux, macOS, Windows via Git Bash, WSL)
+  # ----------------------------------------------------------------------
+  test-bash:
+    name: bash tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Git Bash (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          # Git for Windows includes Git Bash; verify it's on PATH
+          $bash = Get-Command bash.exe -ErrorAction SilentlyContinue
+          if (-not $bash) {
+            Write-Host "::error::bash.exe not found on PATH"
+            exit 1
+          }
+          Write-Host "Git Bash found: $($bash.Source)"
+
+      - name: Run bash test suite
+        run: |
+          bash installer/tests/run-all.sh
+
+      - name: Syntax check all shell scripts
+        run: |
+          for f in installer/kena-skills installer/install.sh installer/lib/*.sh installer/tests/*.sh installer/templates/*.sh; do
+            echo "Checking $f..."
+            bash -n "$f"
+          done
+
+      - name: Smoke test --list
+        run: |
+          bash installer/kena-skills --list
+
+      - name: Smoke test --help
+        run: |
+          bash installer/kena-skills --help
+
+      - name: Smoke test --all --dry-run
+        run: |
+          bash installer/kena-skills --all --target opencode --dry-run --no-tui
+
+  # ----------------------------------------------------------------------
+  # PowerShell wrapper test (Windows only)
+  # ----------------------------------------------------------------------
+  test-powershell:
+    name: powershell wrapper (windows-latest)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate install.ps1 syntax
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            'installer/install.ps1', [ref]$tokens, [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host "::error::$($_.Message)" }
+            exit 1
+          }
+          Write-Host "install.ps1 syntax OK"
+
+      - name: Validate install.cmd syntax (basic check)
+        run: |
+          if (-not (Test-Path 'installer/install.cmd')) {
+            Write-Host "::error::install.cmd not found"
+            exit 1
+          }
+          $content = Get-Content 'installer/install.cmd' -Raw
+          if ($content -notmatch '@echo off') {
+            Write-Host "::error::install.cmd missing @echo off"
+            exit 1
+          }
+          Write-Host "install.cmd OK"
+
+      - name: Test install.ps1 -Help
+        run: |
+          pwsh -File installer/install.ps1 -Help
+
+      - name: Test install.ps1 runtime detection
+        run: |
+          # The wrapper should detect Git Bash on windows-latest
+          pwsh -File installer/install.ps1 -Help | Select-String -Pattern "Git Bash" -SimpleMatch
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::install.ps1 help doesn't mention Git Bash"
+            exit 1
+          }
+
+  # ----------------------------------------------------------------------
+  # ShellCheck lint (Linux/macOS only — Windows lacks shellcheck)
+  # ----------------------------------------------------------------------
+  lint-shellcheck:
+    name: shellcheck (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: ./installer
+          additional_files: install.sh kena-skills
+          ignore: SC1091,SC2086,SC2155,SC2046
+
+  # ----------------------------------------------------------------------
+  # Final summary
+  # ----------------------------------------------------------------------
+  all-passed:
+    name: all checks passed
+    runs-on: ubuntu-latest
+    needs: [test-bash, test-powershell, lint-shellcheck]
+    if: ${{ always() }}
+    steps:
+      - name: Verify all jobs passed
+        run: |
+          if [ "${{ needs.test-bash.result }}" != "success" ]; then
+            echo "::error::test-bash failed: ${{ needs.test-bash.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.test-powershell.result }}" != "success" ]; then
+            echo "::error::test-powershell failed: ${{ needs.test-powershell.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.lint-shellcheck.result }}" != "success" ]; then
+            echo "::error::lint-shellcheck failed: ${{ needs.lint-shellcheck.result }}"
+            exit 1
+          fi
+          echo "✓ All CI jobs passed"

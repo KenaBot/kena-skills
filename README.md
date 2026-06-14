@@ -4,6 +4,9 @@ Multi-source skill registry and installer for the kena ecosystem. Distributes sk
 
 **Upstream repo:** [github.com/KenaBot/kena-skills](https://github.com/KenaBot/kena-skills)
 
+[![test](https://github.com/KenaBot/kena-skills/actions/workflows/test.yml/badge.svg)](https://github.com/KenaBot/kena-skills/actions/workflows/test.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-02569b?logo=dependabot)](https://github.com/KenaBot/kena-skills/network/dependencies)
+
 ## Platform support
 
 The installer is bash-based and runs on the three major platforms:

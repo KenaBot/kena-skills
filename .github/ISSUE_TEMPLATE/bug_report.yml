@@ -1,0 +1,105 @@
+name: Bug report
+description: Report a bug in the kena-skills installer
+title: "[bug] "
+labels:
+  - bug
+  - needs-triage
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in the sections below.
+        The more detail you provide, the faster we can reproduce and fix it.
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: Which OS are you running kena-skills on?
+      options:
+        - Linux
+        - macOS
+        - Windows + Git Bash
+        - Windows + WSL
+        - Windows + PowerShell (no bash)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Target agent
+      description: Which agent runtime were you installing to?
+      options:
+        - opencode
+        - claude (claude-code)
+        - copilot (github-copilot)
+        - codex
+        - gemini (gemini-cli)
+        - multiple / all
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Source
+      description: Which skill source triggered the bug?
+      options:
+        - kena-skills (local)
+        - juliusbrussee-caveman (curl)
+        - mattpocock-skills (npx)
+        - other / multiple
+    validations:
+      required: true
+
+  - type: input
+    id: kena-version
+    attributes:
+      label: kena-skills version
+      description: Output of `kena-skills --version` or commit SHA
+      placeholder: "v1.4.0 or bfa5be3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the actual behavior, including any error output
+      placeholder: |
+        I ran kena-skills --skill deepsearch --target opencode and got:
+        bash line 42 syntax error near unexpected token
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect
+      description: Describe the behavior you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal command sequence that triggers the bug
+      placeholder: |
+        1. curl -fsSL .../install.sh then bash
+        2. kena-skills --list
+        3. kena-skills --skill deepsearch --target opencode
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Paste relevant logs. Use kena-skills --verbose for more detail.
+    validations:
+      required: false
