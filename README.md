@@ -2,6 +2,8 @@
 
 Multi-source skill registry and installer for the kena ecosystem. Distributes skills from 3 sources to 5 agent runtimes, with an interactive Ink TUI for the user-friendly path and full CLI flags for scripts/CI.
 
+**Upstream repo:** [github.com/KenaBot/kena-skills](https://github.com/KenaBot/kena-skills)
+
 ## Supported agents (5)
 
 | Display id | `npx skills` flag | Global path |
@@ -28,29 +30,95 @@ Multi-source skill registry and installer for the kena ecosystem. Distributes sk
 
 ## Installation
 
-### Option 1: Ink TUI (recommended for interactive use)
+### Option 1: `npx kena-skills` (once published to npm) — easiest
+
+After publishing the package to npm, anyone can install and use kena-skills with zero setup:
 
 ```bash
-# One-time: build the UI
-cd ui && npm install && npm run build && cd ..
+# Run without installing (npx handles deps)
+npx kena-skills@latest --list
+npx kena-skills@latest --skill deepsearch --target opencode,claude
+npx kena-skills@latest ui         # launch the Ink TUI
 
-# Launch
+# Or install globally
+npm install -g kena-skills
 kena-skills ui
 ```
 
+**How to publish:**
+
+1. Create a new npm package `kena-skills` that wraps this repo. The recommended structure is:
+
+   ```
+   kena-skills-npm/                  # the published package
+   ├── package.json                  # { "name": "kena-skills", "bin": { "kena-skills": "./bin.js" } }
+   ├── bin.js                        # entry: spawns bash <repo>/installer/install.sh
+   ├── README.md                     # points to github.com/KenaBot/kena-skills
+   └── ...
+   ```
+
+2. The simplest `bin.js` (uses Node to fetch + run the installer):
+
+   ```js
+   #!/usr/bin/env node
+   const {execSync} = require('node:child_process');
+   const REPO = 'https://raw.githubusercontent.com/KenaBot/kena-skills/main';
+   execSync(`curl -fsSL ${REPO}/installer/install.sh | bash`, { stdio: 'inherit' });
+   ```
+
+3. Publish:
+
+   ```bash
+   cd kena-skills-npm
+   npm login
+   npm publish
+   ```
+
+   Then `npx kena-skills@latest` works for anyone.
+
+4. **Alternative (zero npm publish):** users can run the bootstrap directly:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/KenaBot/kena-skills/main/installer/install.sh | bash
+   kena-skills --list
+   ```
+
+### Option 2: `git clone` + bootstrap (for contributors and self-hosters)
+
+```bash
+# Clone the repo
+git clone https://github.com/KenaBot/kena-skills.git ~/kena-skills
+cd ~/kena-skills
+
+# Run the installer (creates symlinks in ~/.agents/skills, ~/.config/opencode/skills, etc.)
+./installer/install.sh
+# or: bash installer/kena-skills ui   # launches the TUI
+
+# Build the UI (optional, but recommended for interactive use)
+cd ui && npm install && npm run build && cd ..
+```
+
+The installer script:
+- Creates symlinks from the checkout to your discovery dirs (`~/.config/opencode/skills/deepsearch`, `~/.claude/skills/deepsearch`, etc.)
+- Optionally adds `~/kena-skills/installer` to your `PATH` as `kena-skills` via `~/.local/bin/`
+- Builds the UI if Node is available
+- Falls back gracefully if anything is missing
+
+### Option 3: Ink TUI (recommended for interactive use)
+
 The TUI lets you:
-- Switch between sources (`←/→`)
-- Pick a skill (`↑/↓`, `Enter`)
-- Multi-select target agents (`Space`)
-- Toggle `--dry-run` (`d`) and `--install-deps` (`a`)
-- Watch the install stream in real time
-- See success/failure with exit code
+- Browse skills grouped by source with `[h]` to collapse groups
+- See install state per skill: `[not installed]` / `[installed: global]` / `[installed: local]` / `[installed: global+local]`
+- Multi-select with `Space`
+- Configure per-skill (targets, scope, install-deps) in `phase-config` screen
+- Run multi-phase installs sequentially (continue-on-fail)
+- Stream live output with exit code per phase
 
 The TUI is built with [Ink](https://github.com/vadimdemedes/ink) (React for CLIs).
 
 If you run `kena-skills` with no args in a TTY and the UI is built, it auto-launches.
 
-### Option 2: CLI flags (recommended for scripts/CI)
+### Option 4: CLI flags (recommended for scripts/CI)
 
 ```bash
 kena-skills --list                              # list all skills from all sources
@@ -59,6 +127,17 @@ kena-skills --skill deepsearch --target opencode,claude
 kena-skills --skill caveman --target opencode   # juliusbrussee/caveman via curl
 kena-skills --skill diagnose --target claude    # mattpocock via npx
 kena-skills --mcp claude-mem --install-deps     # install MCP dependency
+kena-skills --scope local --skill deepsearch    # install to .opencode/skills/ instead of global
+kena-skills ui                                  # launch the TUI
+kena-skills --all --target opencode --install-deps
+```
+
+For `npx` users (without global install):
+
+```bash
+npx --package=kena-skills kena-skills --list
+npx --package=kena-skills kena-skills ui
+```
 kena-skills --all --target opencode --install-deps
 ```
 

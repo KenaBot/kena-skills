@@ -1,6 +1,6 @@
 # kena-skills UI
 
-Interactive TUI for the [kena-skills](https://github.com/kena/skills) registry. Built with [Ink](https://github.com/vadimdemedes/ink) (React for CLIs).
+Interactive TUI for the [KenaBot/kena-skills](https://github.com/KenaBot/kena-skills) registry. Built with [Ink](https://github.com/vadimdemedes/ink) (React for CLIs).
 
 ## What it does
 
