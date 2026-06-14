@@ -52,11 +52,11 @@ detect_installed_agents() {
   local agent_id
   while IFS= read -r agent_id; do
     [ -z "$agent_id" ] && continue
-    local global_dir
+    local global_dir windows_global_dir full_path parent
     global_dir=$(get_agent_global_dir "$agent_id")
     if [ -z "$global_dir" ]; then continue; fi
-    local full_path="$HOME/$global_dir"
-    local parent
+    windows_global_dir=$(json_find_by_id "$AGENTS_REGISTRY" "agents" "$agent_id" "windows_global_dir")
+    full_path=$(resolve_global_dir "$global_dir" "$windows_global_dir")
     parent=$(dirname "$full_path")
     if [ -d "$parent" ]; then
       echo "$agent_id"

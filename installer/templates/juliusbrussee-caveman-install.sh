@@ -17,7 +17,13 @@ for dir in \
   "$HOME/.copilot/skills/$SKILL_NAME" \
   "$HOME/.codex/skills/$SKILL_NAME" \
   "$HOME/.gemini/skills/$SKILL_NAME" \
-  "$HOME/.agents/skills/$SKILL_NAME"; do
+  "$HOME/.agents/skills/$SKILL_NAME" \
+  "/c/Users/$USER/.config/opencode/skills/$SKILL_NAME" \
+  "/c/Users/$USER/.claude/skills/$SKILL_NAME" \
+  "/c/Users/$USER/.copilot/skills/$SKILL_NAME" \
+  "/c/Users/$USER/.codex/skills/$SKILL_NAME" \
+  "/c/Users/$USER/.gemini/skills/$SKILL_NAME" \
+  "/c/Users/$USER/.agents/skills/$SKILL_NAME"; do
   if [ -d "$dir" ]; then
     echo "  [OK] $dir"
     found=$((found+1))

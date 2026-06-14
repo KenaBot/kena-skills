@@ -18,7 +18,13 @@ for skill in "${SAMPLE_SKILLS[@]}"; do
     "$HOME/.copilot/skills/$skill" \
     "$HOME/.codex/skills/$skill" \
     "$HOME/.gemini/skills/$skill" \
-    "$HOME/.agents/skills/$skill"; do
+    "$HOME/.agents/skills/$skill" \
+    "/c/Users/$USER/.config/opencode/skills/$skill" \
+    "/c/Users/$USER/.claude/skills/$skill" \
+    "/c/Users/$USER/.copilot/skills/$skill" \
+    "/c/Users/$USER/.codex/skills/$skill" \
+    "/c/Users/$USER/.gemini/skills/$skill" \
+    "/c/Users/$USER/.agents/skills/$skill"; do
     if [ -d "$dir" ] || [ -L "$dir" ]; then
       echo "  [OK] $skill: $dir"
       found=$((found+1))

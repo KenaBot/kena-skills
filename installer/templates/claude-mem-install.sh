@@ -16,8 +16,11 @@ echo ""
 
 if check_mcp "claude-mem"; then
   echo "  [OK] claude-mem is installed"
-  # Find installation path
-  for d in "$HOME"/.npm/_npx/*/node_modules/claude-mem; do
+  # Find installation path (Unix + Git Bash on Windows)
+  for d in \
+    "$HOME"/.npm/_npx/*/node_modules/claude-mem \
+    "/c/Users/$USER"/AppData/Local/npm-cache/_npx/*/node_modules/claude-mem \
+    "$HOME"/AppData/Local/npm-cache/_npx/*/node_modules/claude-mem; do
     if [ -d "$d" ]; then
       echo "  [INFO] npx cache: $d"
       break
@@ -25,6 +28,8 @@ if check_mcp "claude-mem"; then
   done
   if [ -d "$HOME/.claude/plugins/data/claude-mem-thedotmack" ]; then
     echo "  [INFO] Claude plugin data: $HOME/.claude/plugins/data/claude-mem-thedotmack"
+  elif [ -d "/c/Users/$USER/.claude/plugins/data/claude-mem-thedotmack" ]; then
+    echo "  [INFO] Claude plugin data: /c/Users/$USER/.claude/plugins/data/claude-mem-thedotmack"
   fi
 else
   echo "  [MISSING] claude-mem is NOT installed"

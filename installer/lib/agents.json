@@ -1,11 +1,12 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Registry of supported agent runtimes for kena-skills installer",
   "agents": [
     {
       "id": "opencode",
       "npx_flag": "opencode",
       "global_dir": ".config/opencode/skills",
+      "windows_global_dir": "%USERPROFILE%\\.config\\opencode\\skills",
       "project_dir": ".opencode/skills",
       "symlink_compatible": true,
       "description": "OpenCode CLI and TUI"
@@ -14,6 +15,7 @@
       "id": "claude",
       "npx_flag": "claude-code",
       "global_dir": ".claude/skills",
+      "windows_global_dir": "%USERPROFILE%\\.claude\\skills",
       "project_dir": ".claude/skills",
       "symlink_compatible": true,
       "description": "Anthropic Claude Code CLI"
@@ -22,6 +24,7 @@
       "id": "copilot",
       "npx_flag": "github-copilot",
       "global_dir": ".copilot/skills",
+      "windows_global_dir": "%USERPROFILE%\\.copilot\\skills",
       "project_dir": ".agents/skills",
       "symlink_compatible": true,
       "description": "GitHub Copilot agent"
@@ -30,6 +33,7 @@
       "id": "codex",
       "npx_flag": "codex",
       "global_dir": ".codex/skills",
+      "windows_global_dir": "%USERPROFILE%\\.codex\\skills",
       "project_dir": ".agents/skills",
       "symlink_compatible": true,
       "description": "OpenAI Codex CLI"
@@ -38,6 +42,7 @@
       "id": "gemini",
       "npx_flag": "gemini-cli",
       "global_dir": ".gemini/skills",
+      "windows_global_dir": "%USERPROFILE%\\.gemini\\skills",
       "project_dir": ".agents/skills",
       "symlink_compatible": true,
       "description": "Google Gemini CLI"

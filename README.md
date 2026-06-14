@@ -18,6 +18,29 @@ The installer is bash-based and runs on the three major platforms:
 
 The installer auto-detects the runtime environment (GNU vs BSD userland, Windows vs Unix paths, Git Bash vs WSL) and adapts symlink creation, path resolution, and HOME lookup. The `.gitattributes` file enforces LF line endings on all shell scripts, so Git on Windows won't corrupt them.
 
+### Windows install options
+
+**Option 1: Git Bash (recommended)**
+```bash
+curl -fsSL https://raw.githubusercontent.com/KenaBot/kena-skills/main/installer/install.sh | bash
+```
+
+**Option 2: WSL**
+```powershell
+wsl --install  # if not already installed
+wsl curl -fsSL https://raw.githubusercontent.com/KenaBot/kena-skills/main/installer/install.sh | bash
+```
+
+**Option 3: PowerShell wrapper (auto-detects Git Bash or WSL)**
+```powershell
+iex (irm https://raw.githubusercontent.com/KenaBot/kena-skills/main/installer/install.ps1)
+```
+
+**Option 4: Double-click**
+Download `installer/install.cmd` and double-click. The script forwards to PowerShell, which auto-detects the bash runtime.
+
+The PowerShell wrapper (`install.ps1`) auto-detects `bash.exe` (Git Bash) or `wsl.exe` in your PATH and delegates to the standard bash installer. If neither is found, it prints clear install instructions.
+
 ## Supported agents (5)
 
 | Display id | `npx skills` flag | Global path |

@@ -10,6 +10,23 @@ BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 REPO_URL="${KENA_SKILLS_REPO:-https://github.com/KenaBot/kena-skills.git}"
 RAW_URL="${KENA_SKILLS_RAW:-https://raw.githubusercontent.com/KenaBot/kena-skills/main}"
 
+# Detect platform: when running under Git Bash on Windows, MSYSTEM is set.
+# When running under WSL, WSL_DISTRO_NAME is set.
+if [ -n "${MSYSTEM:-}" ]; then
+  PLATFORM="windows-git-bash"
+  # Git Bash on Windows: HOME is set, but ~/.local/bin may not be on PATH
+  # Use LOCALAPPDATA if available, fall back to HOME/.local/bin
+  if [ -n "${LOCALAPPDATA:-}" ]; then
+    BIN_DIR="${BIN_DIR:-$LOCALAPPDATA/kena-skills/bin}"
+    INSTALL_DIR="${INSTALL_DIR:-$LOCALAPPDATA/kena-skills}"
+  fi
+elif [ -n "${WSL_DISTRO_NAME:-}" ]; then
+  PLATFORM="wsl"
+  # WSL: standard Unix paths
+else
+  PLATFORM="unix"
+fi
+
 # Determine source
 if [ -f "./installer/kena-skills" ] && [ -d "./installer/lib" ]; then
   SRC="$(pwd)"
@@ -26,6 +43,8 @@ else
   git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
   SRC="$INSTALL_DIR"
 fi
+
+echo "  Detected platform: $PLATFORM"
 
 # Create dirs
 mkdir -p "$INSTALL_DIR" "$BIN_DIR"

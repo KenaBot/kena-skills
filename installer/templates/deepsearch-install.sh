@@ -13,12 +13,16 @@ echo ""
 
 # Locate the skill directory
 if [ ! -d "$SKILL_DIR" ]; then
-  # Search common locations
+  # Search common locations (Unix + Git Bash on Windows with /c/Users/...)
   for candidate in \
     "$HOME/.config/opencode/skills/deepsearch" \
     "$HOME/.claude/skills/deepsearch" \
     "$HOME/.codex/skills/deepsearch" \
-    "$HOME/.agents/skills/deepsearch"; do
+    "$HOME/.agents/skills/deepsearch" \
+    "/c/Users/$USER/.config/opencode/skills/deepsearch" \
+    "/c/Users/$USER/.claude/skills/deepsearch" \
+    "/c/Users/$USER/.codex/skills/deepsearch" \
+    "/c/Users/$USER/.agents/skills/deepsearch"; do
     if [ -d "$candidate" ]; then
       SKILL_DIR="$candidate"
       break
@@ -52,6 +56,8 @@ if command -v graphify >/dev/null 2>&1; then
   echo "  [OK] graphify: found (PATH)"
 elif [ -d "$HOME/.local/share/uv/tools/graphify" ]; then
   echo "  [OK] graphify: found (uv tool)"
+elif [ -d "$HOME/AppData/Roaming/uv/tools/graphify" ] || [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphify" ]; then
+  echo "  [OK] graphify: found (uv tool, Windows)"
 else
   echo "  [WARN] graphify: not found"
   echo "         Phase 3 (code map) will use --no-graph fallback."
@@ -79,7 +85,14 @@ for target in "${TARGETS[@]}"; do
     claude-code)   link="$HOME/.claude/skills/deepsearch";;
     codex)         link="$HOME/.codex/skills/deepsearch";;
     agents)        link="$HOME/.agents/skills/deepsearch";;
-    *)             link="$HOME/.agents/skills/deepsearch";;
+    *)
+                  # Windows fallback (Git Bash style /c/Users/...)
+                  if [ -n "${MSYSTEM:-}" ] && [ -n "${USER:-}" ]; then
+                    link="/c/Users/$USER/.agents/skills/deepsearch"
+                  else
+                    link="$HOME/.agents/skills/deepsearch"
+                  fi
+                  ;;
   esac
 
   if [ -L "$link" ] && [ -d "$link" ]; then

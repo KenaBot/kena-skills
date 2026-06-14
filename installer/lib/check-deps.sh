@@ -3,6 +3,9 @@
 # MCPs are checked via installer/lib/mcps.json
 # System deps are checked via case-statement heuristics
 
+# shellcheck source=platform.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
+
 # Check if a system dep is installed
 check_dep() {
   local dep="$1"
@@ -14,6 +17,11 @@ check_dep() {
       command -v graphify >/dev/null 2>&1 && return 0
       [ -d "$HOME/.local/share/uv/tools/graphify" ] && return 0
       [ -d "$HOME/.local/pipx/venvs/graphify" ] && return 0
+      # Windows paths (Git Bash with /c/Users/... style)
+      [ -d "$HOME/.local/share/uv/tools/graphify" ] && return 0
+      [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphify" ] && return 0
+      [ -d "/c/Users/$USER/.local/bin/graphify.exe" ] && return 0
+      [ -d "$USERPROFILE/AppData/Roaming/uv/tools/graphify" ] && return 0
       return 1
       ;;
     *)

@@ -222,6 +222,38 @@ make_symlink() {
   esac
 }
 
+# Resolve a relative path (e.g. ".config/opencode/skills") to an absolute
+# user-level path, with Windows-aware override.
+#
+# Usage: resolve_global_dir <relative_path> [windows_path]
+#   - On Unix: returns $HOME/<relative_path>
+#   - On Windows: returns expanded <windows_path> (e.g. C:\Users\foo\.config\opencode\skills)
+#   - If windows_path is empty or omitted, falls back to $HOME/<relative_path>
+#
+# %USERPROFILE% expansion: we read USERPROFILE directly to avoid eval.
+resolve_global_dir() {
+  local relative_path="$1"
+  local windows_path="${2:-}"
+
+  ensure_home
+  detect_os
+
+  if [ "${KENA_OS:-}" = "windows" ] && [ -n "$windows_path" ]; then
+    # Expand %USERPROFILE% to actual value. Handle both %VAR% and $VAR style.
+    local expanded="$windows_path"
+    if [ -n "${USERPROFILE:-}" ]; then
+      expanded="${expanded//%USERPROFILE%/$USERPROFILE}"
+    elif [ -n "${HOME:-}" ]; then
+      expanded="${expanded//%USERPROFILE%/$HOME}"
+    fi
+    # Convert backslashes to forward slashes for Git Bash compat
+    expanded="${expanded//\\//}"
+    echo "$expanded"
+    return 0
+  fi
+  echo "$HOME/$relative_path"
+}
+
 # Auto-detect everything when sourced.
 detect_os
 detect_shell
