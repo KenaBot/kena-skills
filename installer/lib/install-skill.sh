@@ -7,6 +7,8 @@
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# shellcheck source=platform.sh
+source "$LIB_DIR/platform.sh"
 # shellcheck source=json.sh
 source "$LIB_DIR/json.sh"
 # shellcheck source=source-npx.sh
@@ -125,9 +127,8 @@ install_to_target() {
     return 1
   fi
 
-  local global_dir
+  local global_dir project_dir
   global_dir=$(get_agent_global_dir "$target")
-  local project_dir
   project_dir=$(json_find_by_id "$LIB_DIR/../lib/agents.json" "agents" "$target" "project_dir")
 
   info "  → Installing '$skill' to $target (local source)"
@@ -147,21 +148,19 @@ install_to_target() {
   fi
 
   # Manual symlink fallback
-  local global_dir
-  global_dir=$(get_agent_global_dir "$target")
   if [ -z "$global_dir" ]; then
     err "    No global_dir for target $target"
     return 1
   fi
 
-  local target_dir
+  local target_dir link
   if [ "${SCOPE:-global}" = "local" ]; then
     target_dir="$REPO_ROOT/$project_dir"
   else
     target_dir="$HOME/$global_dir"
   fi
   mkdir -p "$target_dir"
-  local link="$target_dir/$skill"
+  link="$target_dir/$skill"
 
   if [ -L "$link" ]; then
     rm -f "$link"
@@ -169,7 +168,7 @@ install_to_target() {
     echo "    [skip] $link exists as a directory; remove manually if you want to symlink"
     return 1
   fi
-  ln -s "$skill_path" "$link"
+  make_symlink "$skill_path" "$link"
   ok "    Installed via symlink: $link -> $skill_path"
 }
 

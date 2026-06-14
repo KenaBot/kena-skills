@@ -83,7 +83,7 @@ for target in "${TARGETS[@]}"; do
   esac
 
   if [ -L "$link" ] && [ -d "$link" ]; then
-    local_target=$(readlink -f "$link")
+    local_target=$(resolve_symlink "$link")
     echo "  [OK] $target: $link -> $local_target"
   elif [ -d "$link" ]; then
     echo "  [OK] $target: $link (real directory)"

@@ -1,0 +1,21 @@
+# Ensure shell scripts and JSON files use LF line endings on all OSes
+# This prevents Git on Windows from converting LF to CRLF, which breaks
+# bash shebangs and JSON parsers.
+
+*.sh text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+
+# Binary files (no conversion)
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

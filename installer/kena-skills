@@ -7,6 +7,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Source libraries
+# shellcheck source=lib/platform.sh
+source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=lib/output.sh
 source "$SCRIPT_DIR/lib/output.sh"
 # shellcheck source=lib/tui.sh
@@ -189,17 +191,12 @@ if [ -n "$SKILL" ]; then
 fi
 
 # Install all default skills
-if [ "$INSTALL_ALL" = true ]; then
+install_all_default_skills() {
   info "Installing all default skills from all sources..."
-  if [ -z "$TARGETS" ]; then
-    mapfile -t DETECTED < <(detect_installed_agents)
-    TARGETS="${DETECTED[*]}"
-    TARGETS="${TARGETS// /,}"
-  fi
+  local s skill_name type defaults
 
   while IFS= read -r s; do
     [ -z "$s" ] && continue
-    local type
     type=$(get_source_type "$s")
     if [ "$type" = "local" ]; then
       while IFS= read -r skill_name; do
@@ -211,10 +208,8 @@ if [ "$INSTALL_ALL" = true ]; then
 
   while IFS= read -r s; do
     [ -z "$s" ] && continue
-    local type
     type=$(get_source_type "$s")
     if [ "$type" = "npx" ]; then
-      local defaults
       defaults=$(json_find_by_id "$REPO_ROOT/installer/lib/sources.json" "sources" "$s" "default_skills")
       if [ -n "$defaults" ]; then
         for skill_name in $defaults; do
@@ -223,7 +218,15 @@ if [ "$INSTALL_ALL" = true ]; then
       fi
     fi
   done < <(list_enabled_sources)
+}
 
+if [ "$INSTALL_ALL" = true ]; then
+  if [ -z "$TARGETS" ]; then
+    mapfile -t DETECTED < <(detect_installed_agents)
+    TARGETS="${DETECTED[*]}"
+    TARGETS="${DETECTED[*]// /,}"
+  fi
+  install_all_default_skills
   exit 0
 fi
 

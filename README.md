@@ -4,6 +4,20 @@ Multi-source skill registry and installer for the kena ecosystem. Distributes sk
 
 **Upstream repo:** [github.com/KenaBot/kena-skills](https://github.com/KenaBot/kena-skills)
 
+## Platform support
+
+The installer is bash-based and runs on the three major platforms:
+
+| OS | Bash | PowerShell wrapper | Tested in CI |
+|---|---|---|---|
+| Linux | ✅ native | — | ✅ |
+| macOS | ✅ native (BSD userland) | — | ✅ |
+| Windows + Git Bash | ✅ | — | ✅ |
+| Windows + WSL | ✅ | — | ✅ |
+| Windows + PowerShell (no bash) | — | ✅ (auto-detects Git Bash / WSL) | ✅ |
+
+The installer auto-detects the runtime environment (GNU vs BSD userland, Windows vs Unix paths, Git Bash vs WSL) and adapts symlink creation, path resolution, and HOME lookup. The `.gitattributes` file enforces LF line endings on all shell scripts, so Git on Windows won't corrupt them.
+
 ## Supported agents (5)
 
 | Display id | `npx skills` flag | Global path |

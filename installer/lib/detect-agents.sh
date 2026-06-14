@@ -5,6 +5,10 @@
 # Resolve the directory of this script (lib/)
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Source the platform helpers
+# shellcheck source=platform.sh
+source "$LIB_DIR/platform.sh"
+
 # Source the json parser
 # shellcheck source=json.sh
 source "$LIB_DIR/json.sh"
