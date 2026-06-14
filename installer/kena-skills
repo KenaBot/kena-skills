@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# kena-skills — multi-source skill installer
+# Distributes skills from kena-skills, juliusbrussee/caveman, and mattpocock/skills.
+# Manages MCP servers (claude-mem and future) as dependencies.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Source libraries
+# shellcheck source=lib/output.sh
+source "$SCRIPT_DIR/lib/output.sh"
+# shellcheck source=lib/tui.sh
+source "$SCRIPT_DIR/lib/tui.sh"
+# shellcheck source=lib/json.sh
+source "$SCRIPT_DIR/lib/json.sh"
+# shellcheck source=lib/detect-agents.sh
+source "$SCRIPT_DIR/lib/detect-agents.sh"
+# shellcheck source=lib/list-skills.sh
+source "$SCRIPT_DIR/lib/list-skills.sh"
+# shellcheck source=lib/install-skill.sh
+source "$SCRIPT_DIR/lib/install-skill.sh"
+# shellcheck source=lib/check-deps.sh
+source "$SCRIPT_DIR/lib/check-deps.sh"
+# shellcheck source=lib/source-npx.sh
+source "$SCRIPT_DIR/lib/source-npx.sh"
+# shellcheck source=lib/source-curl.sh
+source "$SCRIPT_DIR/lib/source-curl.sh"
+# shellcheck source=lib/source-local.sh
+source "$SCRIPT_DIR/lib/source-local.sh"
+# shellcheck source=lib/mcp-install.sh
+source "$SCRIPT_DIR/lib/mcp-install.sh"
+
+# Resolve paths
+REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+export REPO_ROOT
+REPO_NAME="kena/skills"
+
+# Defaults
+TARGETS=""
+SKILL=""
+LIST_ONLY=false
+INSTALL_ALL=false
+NO_TUI=false
+DEPS_AUTO_INSTALL=false
+DRY_RUN=false
+VERBOSE=false
+SOURCE_FILTER=""
+MCP_TARGET=""
+SKILLS_DIR=""
+
+# Colors
+if [ -t 1 ]; then
+  C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'; C_GREEN=$'\033[0;32m'
+  C_YELLOW=$'\033[0;33m'; C_RED=$'\033[0;31m'; C_CYAN=$'\033[0;36m'; C_DIM=$'\033[2m'
+else
+  C_RESET=""; C_BOLD=""; C_GREEN=""; C_YELLOW=""; C_RED=""; C_CYAN=""; C_DIM=""
+fi
+
+# --- UI dispatch (Ink TUI built with TypeScript) ---
+UI_DIST="$SCRIPT_DIR/../ui/dist/cli.js"
+
+launch_ui() {
+  if ! command -v node >/dev/null 2>&1; then
+    err "kena-skills UI requires Node.js 18+ in PATH"
+    err "Install Node or use the bash interactive mode: kena-skills --list / --skill X"
+    return 1
+  fi
+  if [ ! -f "$UI_DIST" ]; then
+    err "UI not built: $UI_DIST not found"
+    err "Build it: cd ui && npm install && npm run build"
+    return 1
+  fi
+  exec node "$UI_DIST" "$@"
+}
+
+usage() {
+  cat <<EOF
+${C_BOLD}kena-skills${C_RESET} — multi-source skill installer for the kena ecosystem
+
+${C_BOLD}Usage:${C_RESET}
+  kena-skills [options]
+  kena-skills ui                       # Launch Ink TUI (if built)
+
+${C_BOLD}Options:${C_RESET}
+  --list                   List available skills from all sources
+  --source <id>            Limit listing to one source
+  --skill <name>           Install a specific skill
+  --all                    Install all default skills
+  --target <agents>        Comma-separated agents: opencode,claude,copilot,codex,gemini
+  --install-deps           Auto-install missing deps and MCPs
+  --mcp <id>               Install/verify a specific MCP server
+  --no-tui                 Disable TUI
+  --dry-run                Show what would be done
+  --verbose                Verbose output
+  --repo <name>            Override repo name
+  --skills-dir <path>      Override skills directory
+  --help, -h               Show this help
+
+${C_BOLD}Examples:${C_RESET}
+  kena-skills --list
+  kena-skills ui                       # Launch Ink TUI
+  kena-skills --skill deepsearch --target opencode --install-deps
+  kena-skills --all --target opencode
+
+EOF
+}
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --list) LIST_ONLY=true; shift;;
+    --source) SOURCE_FILTER="$2"; shift 2;;
+    --skill) SKILL="$2"; shift 2;;
+    --all) INSTALL_ALL=true; shift;;
+    --target) TARGETS="$2"; shift 2;;
+    --install-deps) DEPS_AUTO_INSTALL=true; shift;;
+    --mcp) MCP_TARGET="$2"; shift 2;;
+    --no-tui) NO_TUI=true; shift;;
+    --dry-run) DRY_RUN=true; shift;;
+    --verbose) VERBOSE=true; shift;;
+    --repo) REPO_NAME="$2"; shift 2;;
+    --skills-dir) SKILLS_DIR="$2"; shift 2;;
+    --help|-h) usage; exit 0;;
+    --scope) SCOPE="$2"; shift 2;;
+    ui) shift; launch_ui "$@"; exit $?;;
+    *) echo "${C_RED}Unknown argument: $1${C_RESET}" >&2; usage; exit 1;;
+  esac
+done
+
+# Default scope
+SCOPE="${SCOPE:-global}"
+
+# Detect TUI
+if [ "$NO_TUI" = true ]; then
+  TUI_BACKEND="read"
+else
+  detect_tui
+fi
+log "TUI backend: $TUI_BACKEND"
+
+# MCP target mode
+if [ -n "$MCP_TARGET" ]; then
+  info "MCP target: $MCP_TARGET"
+  install_mcp "$MCP_TARGET" "$DEPS_AUTO_INSTALL"
+  exit $?
+fi
+
+# List mode
+if [ "$LIST_ONLY" = true ]; then
+  if [ -n "$SOURCE_FILTER" ]; then
+    info "Skills from source: $SOURCE_FILTER"
+    source_type=$(get_source_type "$SOURCE_FILTER")
+    case "$source_type" in
+      local)
+        _list_local_skills
+        ;;
+      npx)
+        _list_npx_source_skills "$SOURCE_FILTER"
+        ;;
+      curl)
+        _list_curl_source_skills "$SOURCE_FILTER"
+        ;;
+      *)
+        err "Unknown source or no type: $SOURCE_FILTER"
+        exit 1
+        ;;
+    esac
+  else
+    list_skills_table
+  fi
+  exit 0
+fi
+
+# Specific skill install
+if [ -n "$SKILL" ]; then
+  if [ -z "$TARGETS" ]; then
+    info "No targets specified. Detecting installed agents..."
+    mapfile -t DETECTED < <(detect_installed_agents)
+    if [ ${#DETECTED[@]} -eq 0 ]; then
+      err "No supported agents detected. Pass --target explicitly."
+      exit 1
+    fi
+    TARGETS="${DETECTED[*]}"
+    TARGETS="${TARGETS// /,}"
+    ok "Detected: $TARGETS"
+  fi
+  install_skill_to_targets "$SKILL" "$TARGETS" "$REPO_ROOT" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN" "$SOURCE_FILTER"
+  exit $?
+fi
+
+# Install all default skills
+if [ "$INSTALL_ALL" = true ]; then
+  info "Installing all default skills from all sources..."
+  if [ -z "$TARGETS" ]; then
+    mapfile -t DETECTED < <(detect_installed_agents)
+    TARGETS="${DETECTED[*]}"
+    TARGETS="${TARGETS// /,}"
+  fi
+
+  while IFS= read -r s; do
+    [ -z "$s" ] && continue
+    local type
+    type=$(get_source_type "$s")
+    if [ "$type" = "local" ]; then
+      while IFS= read -r skill_name; do
+        [ -z "$skill_name" ] && continue
+        install_skill_to_targets "$skill_name" "$TARGETS" "$REPO_ROOT" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN" "$s"
+      done < <(list_skill_names "$REPO_ROOT/skills")
+    fi
+  done < <(list_enabled_sources)
+
+  while IFS= read -r s; do
+    [ -z "$s" ] && continue
+    local type
+    type=$(get_source_type "$s")
+    if [ "$type" = "npx" ]; then
+      local defaults
+      defaults=$(json_find_by_id "$REPO_ROOT/installer/lib/sources.json" "sources" "$s" "default_skills")
+      if [ -n "$defaults" ]; then
+        for skill_name in $defaults; do
+          install_skill_to_targets "$skill_name" "$TARGETS" "$REPO_ROOT" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN" "$s"
+        done
+      fi
+    fi
+  done < <(list_enabled_sources)
+
+  exit 0
+fi
+
+# Interactive mode: try UI first, fallback to bash TUI
+if [ -t 0 ] && [ -t 1 ] && command -v node >/dev/null 2>&1 && [ -f "$UI_DIST" ]; then
+  log "Auto-detected TTY + Node + ui/dist — launching Ink UI"
+  exec node "$UI_DIST"
+fi
+
+# Fallback: bash interactive TUI
+interactive_main "$REPO_ROOT/skills" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN"

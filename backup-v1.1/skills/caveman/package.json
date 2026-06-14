@@ -1,0 +1,13 @@
+{
+  "name": "caveman",
+  "version": "1.0.0",
+  "description": "Ultra-compressed communication mode. Drops filler, articles, and pleasantries while keeping technical accuracy. Cuts token usage ~75%.",
+  "author": "ysm-dev",
+  "license": "MIT",
+  "triggers": ["caveman"],
+  "keywords": ["caveman", "terse", "brief", "tokens", "concise", "communication"],
+  "dependencies": {
+    "required": [],
+    "optional": []
+  }
+}

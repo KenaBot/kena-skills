@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# kena-skills — interactive installer for the kena skills registry
+# Distributes skills to opencode, claude-code, codex, and other agent runtimes.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Source libraries
+# shellcheck source=lib/tui.sh
+source "$SCRIPT_DIR/lib/tui.sh"
+# shellcheck source=lib/detect-agents.sh
+source "$SCRIPT_DIR/lib/detect-agents.sh"
+# shellcheck source=lib/list-skills.sh
+source "$SCRIPT_DIR/lib/list-skills.sh"
+# shellcheck source=lib/check-deps.sh
+source "$SCRIPT_DIR/lib/check-deps.sh"
+# shellcheck source=lib/install-skill.sh
+source "$SCRIPT_DIR/lib/install-skill.sh"
+
+# Resolve skills directory (parent of installer/)
+SKILLS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/skills"
+REPO_NAME="kena/skills"
+REPO_PATH="."
+
+# Defaults
+TARGETS=""
+SKILL=""
+LIST_ONLY=false
+INSTALL_ALL=false
+NO_TUI=false
+DEPS_AUTO_INSTALL=false
+DRY_RUN=false
+VERBOSE=false
+
+# Colors (only when stdout is a TTY)
+if [ -t 1 ]; then
+  C_RESET=$'\033[0m'
+  C_BOLD=$'\033[1m'
+  C_GREEN=$'\033[0;32m'
+  C_YELLOW=$'\033[0;33m'
+  C_RED=$'\033[0;31m'
+  C_CYAN=$'\033[0;36m'
+  C_DIM=$'\033[2m'
+else
+  C_RESET="" C_BOLD="" C_GREEN="" C_YELLOW="" C_RED="" C_CYAN="" C_DIM=""
+fi
+
+usage() {
+  cat <<EOF
+${C_BOLD}kena-skills${C_RESET} — installer for the kena skills registry
+
+${C_BOLD}Usage:${C_RESET}
+  kena-skills [options]
+
+${C_BOLD}Options:${C_RESET}
+  --list                   List available skills without installing
+  --skill <name>           Install a specific skill
+  --all                    Install all available skills
+  --target <agents>        Comma-separated agents: opencode,claude,copilot,codex,gemini
+  --install-deps           Automatically install missing hard-required dependencies
+  --no-tui                 Disable TUI, use CLI flags only (CI/script friendly)
+  --dry-run                Show what would be installed without doing it
+  --verbose                Verbose output
+  --repo <name>            Override repo name (default: $REPO_NAME)
+  --skills-dir <path>      Override skills directory (default: $SKILLS_DIR)
+  --help, -h               Show this help
+
+${C_BOLD}Examples:${C_RESET}
+  kena-skills --list
+  kena-skills --skill deepsearch
+  kena-skills --skill deepsearch --target opencode,claude-code
+  kena-skills --all --target opencode
+  kena-skills --no-tui --skill deepsearch --target opencode --install-deps
+  kena-skills --skill deepsearch --target opencode --dry-run
+
+${C_BOLD}Interactive mode (default):${C_RESET}
+  Just run ${C_BOLD}kena-skills${C_RESET} with no arguments. It will detect installed
+  agents, list available skills, and let you choose with a TUI.
+
+EOF
+}
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --list) LIST_ONLY=true; shift;;
+    --skill) SKILL="$2"; shift 2;;
+    --all) INSTALL_ALL=true; shift;;
+    --target) TARGETS="$2"; shift 2;;
+    --install-deps) DEPS_AUTO_INSTALL=true; shift;;
+    --no-tui) NO_TUI=true; shift;;
+    --dry-run) DRY_RUN=true; shift;;
+    --verbose) VERBOSE=true; shift;;
+    --repo) REPO_NAME="$2"; shift 2;;
+    --skills-dir) SKILLS_DIR="$2"; shift 2;;
+    --help|-h) usage; exit 0;;
+    *) echo "${C_RED}Unknown argument: $1${C_RESET}" >&2; usage; exit 1;;
+  esac
+done
+
+log() { [ "$VERBOSE" = true ] && echo "${C_DIM}[debug]${C_RESET} $*" >&2 || true; }
+info() { echo "${C_CYAN}==>${C_RESET} $*" >&2; }
+ok() { echo "${C_GREEN}✓${C_RESET} $*" >&2; }
+warn() { echo "${C_YELLOW}!${C_RESET} $*" >&2; }
+err() { echo "${C_RED}✗${C_RESET} $*" >&2; }
+
+# Detect TUI backend
+if [ "$NO_TUI" = true ]; then
+  TUI_BACKEND="read"
+else
+  detect_tui
+fi
+log "TUI backend: $TUI_BACKEND"
+
+# Main dispatch
+if [ "$LIST_ONLY" = true ]; then
+  list_skills_table "$SKILLS_DIR"
+  exit 0
+fi
+
+if [ -n "$SKILL" ]; then
+  # Specific skill install
+  if [ -z "$TARGETS" ]; then
+    # No targets specified: auto-detect
+    info "No targets specified. Detecting installed agents..."
+    mapfile -t DETECTED < <(detect_installed_agents)
+    if [ ${#DETECTED[@]} -eq 0 ]; then
+      err "No supported agents detected. Pass --target explicitly."
+      exit 1
+    fi
+    TARGETS="${DETECTED[*]}"
+    TARGETS="${TARGETS// /,}"
+    ok "Detected: $TARGETS"
+  fi
+  install_skill_to_targets "$SKILL" "$TARGETS" "$SKILLS_DIR" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN"
+  exit 0
+fi
+
+if [ "$INSTALL_ALL" = true ]; then
+  # Install everything
+  if [ -z "$TARGETS" ]; then
+    mapfile -t DETECTED < <(detect_installed_agents)
+    TARGETS="${DETECTED[*]}"
+    TARGETS="${TARGETS// /,}"
+  fi
+  mapfile -t SKILLS < <(list_skill_names "$SKILLS_DIR")
+  for s in "${SKILLS[@]}"; do
+    install_skill_to_targets "$s" "$TARGETS" "$SKILLS_DIR" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN"
+  done
+  exit 0
+fi
+
+# Interactive mode
+interactive_main "$SKILLS_DIR" "$REPO_NAME" "$DEPS_AUTO_INSTALL" "$DRY_RUN"

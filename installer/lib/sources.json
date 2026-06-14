@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "description": "Registry of skill sources for kena-skills installer",
+  "sources": [
+    {
+      "id": "kena-skills",
+      "type": "local",
+      "description": "Kena's own skills (deepsearch and others hosted in this repo)",
+      "path": "skills",
+      "enabled": true
+    },
+    {
+      "id": "juliusbrussee-caveman",
+      "type": "curl",
+      "description": "caveman by JuliusBrussee (72k stars, ~75% token savings, 30+ agents)",
+      "url": "https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh",
+      "skills": ["caveman"],
+      "force_scope": "global",
+      "enabled": true
+    },
+    {
+      "id": "mattpocock-skills",
+      "type": "npx",
+      "description": "Skills for Real Engineers by Matt Pocock (128k stars)",
+      "npx_args": "mattpocock/skills",
+      "available_skills": [
+        "diagnose",
+        "grill-me",
+        "grill-with-docs",
+        "tdd",
+        "triage",
+        "to-prd",
+        "to-issues",
+        "zoom-out",
+        "improve-codebase-architecture",
+        "prototype",
+        "setup-matt-pocock-skills",
+        "handoff",
+        "teach",
+        "write-a-skill"
+      ],
+      "visible_skills": ["diagnose", "grill-me"],
+      "default_skills": ["diagnose", "grill-me"],
+      "requires": "npx skills@latest",
+      "enabled": true
+    }
+  ]
+}

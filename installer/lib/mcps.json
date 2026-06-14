@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "description": "Registry of MCP (Model Context Protocol) servers. These are dependencies, not skills.",
+  "servers": [
+    {
+      "id": "claude-mem",
+      "name": "Claude Memory",
+      "description": "Cross-session memory for AI agents via MCP",
+      "type": "npx-plugin",
+      "package": "@thedotmack/claude-mem",
+      "install_command": "npx -y @thedotmack/claude-mem install",
+      "verify_paths": [
+        "$HOME/.npm/_npx/*/node_modules/claude-mem",
+        "$HOME/.claude/plugins/data/claude-mem-thedotmack"
+      ],
+      "required_by": ["deepsearch"],
+      "enabled": true
+    }
+  ]
+}
