@@ -148,7 +148,20 @@ check_skill_mcps() {
   while IFS= read -r line; do
     if [[ "$in_required" -eq 0 ]] && [[ "$line" =~ \"required\"[[:space:]]*:[[:space:]]*\[ ]]; then
       in_required=1
-      required_bracket=1
+      # Initialize depth from THIS line so elements on the same line
+      # as the opening bracket are captured.
+      local opens_first=$(echo "$line" | tr -cd '[' | wc -c)
+      local closes_first=$(echo "$line" | tr -cd ']' | wc -c)
+      required_bracket=$((opens_first - closes_first))
+      # Capture strings AFTER the opening "[" (e.g.
+      # "required": ["x", "y"]). The first match in the regex above
+      # is the "required" key itself, so we strip up to "[" first.
+      local rest="${line#*\[}"
+      while [[ "$rest" =~ \"([^\"]+)\" ]]; do
+        required+=("${BASH_REMATCH[1]}")
+        rest="${rest#*\"${BASH_REMATCH[1]}\"}"
+      done
+      [ "$required_bracket" -le 0 ] && break
       continue
     fi
     [ "$in_required" -eq 0 ] && continue

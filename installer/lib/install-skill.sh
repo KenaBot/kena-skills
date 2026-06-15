@@ -189,7 +189,20 @@ check_and_install_deps() {
   while IFS= read -r line; do
     if [[ "$in_required" -eq 0 ]] && [[ "$line" =~ \"required\"[[:space:]]*:[[:space:]]*\[ ]]; then
       in_required=1
-      bracket_depth=1
+      # Initialize depth from THIS line (handles inline arrays
+      # and the elements on the same line as the opening bracket).
+      local opens_first=$(echo "$line" | tr -cd '[' | wc -c)
+      local closes_first=$(echo "$line" | tr -cd ']' | wc -c)
+      bracket_depth=$((opens_first - closes_first))
+      # Capture strings AFTER the opening "[" on the same line
+      # (e.g. "required": ["x", "y"]). We can't use a single regex
+      # here because the first match is the "required" key itself.
+      local rest="${line#*\[}"
+      while [[ "$rest" =~ \"([^\"]+)\" ]]; do
+        required+=("${BASH_REMATCH[1]}")
+        rest="${rest#*\"${BASH_REMATCH[1]}\"}"
+      done
+      [ "$bracket_depth" -le 0 ] && break
       continue
     fi
     [ "$in_required" -eq 0 ] && continue
