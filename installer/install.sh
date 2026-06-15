@@ -49,15 +49,35 @@ echo "  Detected platform: $PLATFORM"
 # Create dirs
 mkdir -p "$INSTALL_DIR" "$BIN_DIR"
 
-# Copy installer files (only if SRC != INSTALL_DIR)
+# Copy installer files (only if SRC != INSTALL_DIR). We preserve the
+# installer/ subdirectory structure so the file layout is identical
+# whether the install runs from a fresh git clone OR a local copy.
+# This guarantees the symlink target below is consistent across paths.
 if [ "$SRC" != "$INSTALL_DIR" ]; then
-  cp -r "$SRC/installer/"* "$INSTALL_DIR/"
-  echo "  Copied installer files to $INSTALL_DIR"
+  cp -r "$SRC/installer" "$INSTALL_DIR/"
+  echo "  Copied installer files to $INSTALL_DIR/installer/"
+else
+  echo "  Using existing files in $INSTALL_DIR"
 fi
 
-# Symlink the binary
-ln -sf "$INSTALL_DIR/kena-skills" "$BIN_DIR/kena-skills"
-echo "  Linked $BIN_DIR/kena-skills -> $INSTALL_DIR/kena-skills"
+# Symlink the binary. The actual entry point lives at
+# $INSTALL_DIR/installer/kena-skills. This is consistent whether the
+# install ran from a fresh git clone (where the repo already has
+# installer/kena-skills) or a local copy (where install.sh copies
+# the installer/ subdir preserving the structure).
+TARGET="$INSTALL_DIR/installer/kena-skills"
+ln -sf "$TARGET" "$BIN_DIR/kena-skills"
+echo "  Linked $BIN_DIR/kena-skills -> $TARGET"
+
+# Validate the symlink points to an actual executable. This catches drift
+# between the repo structure and the installer's expectations.
+if [ ! -x "$TARGET" ]; then
+  echo ""
+  echo "  ✗ ERROR: kena-skills binary missing or not executable at $TARGET" >&2
+  echo "    The cloned repo may be incomplete. Try:" >&2
+  echo "      rm -rf $INSTALL_DIR && curl ... | bash" >&2
+  exit 1
+fi
 
 # Build the UI (best-effort, only if Node is available and ui/ exists)
 if command -v node >/dev/null 2>&1; then
