@@ -71,27 +71,96 @@ if command -v node >/dev/null 2>&1; then
   fi
 fi
 
-# PATH check
+# ---- PATH auto-configuration ----
+# Detect the user's shell, the corresponding rc file, and whether $BIN_DIR
+# is already in PATH. If not, offer to add it (interactive: prompt; piped:
+# just print). Always apply to the current shell via `export` so the
+# `kena-skills` command works in the same terminal session.
+
+detect_rc_file() {
+  case "${SHELL:-}" in
+    */zsh)  echo "$HOME/.zshrc" ;;
+    */bash) echo "$HOME/.bashrc" ;;
+    */fish) echo "$HOME/.config/fish/config.fish" ;;
+    *)      echo "$HOME/.profile" ;;  # POSIX fallback (ksh, dash, etc.)
+  esac
+}
+
+is_in_path() {
+  case ":$PATH:" in
+    *":$BIN_DIR:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+RC_FILE="$(detect_rc_file)"
+PATH_LINE="export PATH=\"\$HOME/.local/bin:\$PATH\""
+FISH_LINE="fish_add_path \$HOME/.local/bin"
+
 echo ""
-if command -v kena-skills >/dev/null 2>&1; then
-  echo "kena-skills is now available in your PATH."
-  echo ""
-  echo "Try it:"
-  echo "  kena-skills --list"
-  echo "  kena-skills --help"
-  echo "  kena-skills ui                       # launch the Ink TUI"
+if is_in_path; then
+  echo "✓ $BIN_DIR is in your PATH."
+  if command -v kena-skills >/dev/null 2>&1; then
+    echo ""
+    echo "kena-skills is ready. Try it:"
+    echo "  kena-skills --list"
+    echo "  kena-skills --help"
+    echo "  kena-skills ui                       # launch the Ink TUI"
+  fi
   echo ""
   echo "Upstream: https://github.com/KenaBot/kena-skills"
 else
-  echo "NOTE: $BIN_DIR is not in your PATH."
-  echo "Add this to your ~/.bashrc or ~/.zshrc:"
+  # Apply to current shell so the user can run kena-skills right away
+  export PATH="$HOME/.local/bin:$PATH"
+  if command -v kena-skills >/dev/null 2>&1; then
+    echo "✓ kena-skills is now available in this session."
+  fi
   echo ""
-  echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+  echo "NOTE: $BIN_DIR is not in your shell's startup PATH."
+  echo ""
+
+  if [ -n "$RC_FILE" ] && [ -f "$RC_FILE" ] && grep -qF '$HOME/.local/bin' "$RC_FILE" 2>/dev/null; then
+    # Already in rc file (idempotent)
+    echo "  Found existing PATH config in $RC_FILE."
+    echo "  Restart your shell (or run: source $RC_FILE) to enable kena-skills."
+  elif [ -t 0 ]; then
+    # Interactive: ask before adding
+    printf "  Add kena-skills to %s? [y/N] " "$RC_FILE"
+    read -r ans
+    case "$ans" in
+      y|yes|Y)
+        # Detect fish (different syntax)
+        if [ "${SHELL:-}" = */fish ]; then
+          printf '\n# Added by kena-skills installer\n%s\n' "$FISH_LINE" >> "$RC_FILE"
+        else
+          printf '\n# Added by kena-skills installer\n%s\n' "$PATH_LINE" >> "$RC_FILE"
+        fi
+        echo "  ✓ Added to $RC_FILE"
+        echo "  Restart your shell (or run: source $RC_FILE) to make it persistent."
+        ;;
+      *)
+        echo "  Skipped. To enable later, add this to $RC_FILE:"
+        if [ "${SHELL:-}" = */fish ]; then
+          echo "    $FISH_LINE"
+        else
+          echo "    $PATH_LINE"
+        fi
+        ;;
+    esac
+  else
+    # Non-interactive (piped): just print
+    echo "  Add this to $RC_FILE to make it persistent:"
+    if [ "${SHELL:-}" = */fish ]; then
+      echo "    $FISH_LINE"
+    else
+      echo "    $PATH_LINE"
+    fi
+    echo ""
+    echo "  Or run in this session only:"
+    echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+  fi
   echo ""
   echo "Then run: kena-skills --list"
-  echo ""
-  echo "Or use npx (if published to npm):"
-  echo "  npx --yes $RAW_URL/installer/install.sh | bash"
   echo ""
   echo "Upstream: https://github.com/KenaBot/kena-skills"
 fi
