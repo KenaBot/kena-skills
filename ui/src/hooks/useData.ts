@@ -1,7 +1,8 @@
 import {readFileSync, existsSync} from 'node:fs';
-import {join, dirname, resolve} from 'node:path';
+import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {homedir} from 'node:os';
+import {realpathSync} from 'node:fs';
 import type {SourcesRegistry, AgentsRegistry, MCPsRegistry} from '../types.js';
 
 export interface Data {
@@ -14,11 +15,18 @@ let cached: Data | null = null;
 
 /**
  * Walk up from the current file's directory until we find installer/lib/sources.json.
- * Works regardless of whether this file lives in src/hooks/, dist/hooks/, or elsewhere.
+ * Resolves symlinks first so the lookup works whether the UI is invoked
+ * directly, via a symlink in ~/.local/bin, or via a re-exported dist/.
  */
 function findRepoRoot(): string {
   const __filename = fileURLToPath(import.meta.url);
-  let dir = dirname(__filename);
+  let real = __filename;
+  try {
+    real = realpathSync(__filename);
+  } catch {
+    // file may not exist (e.g. running from a snapshot); fall back
+  }
+  let dir = dirname(real);
   for (let i = 0; i < 8; i++) {
     const candidate = join(dir, 'installer', 'lib', 'sources.json');
     if (existsSync(candidate)) {
@@ -30,7 +38,7 @@ function findRepoRoot(): string {
   }
   throw new Error(
     'Could not find installer/lib/sources.json by walking up from ' +
-      fileURLToPath(import.meta.url) +
+      real +
       '. Run kena-skills from a complete checkout.',
   );
 }

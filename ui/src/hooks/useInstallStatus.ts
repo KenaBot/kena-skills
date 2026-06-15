@@ -1,4 +1,4 @@
-import {existsSync, realpathSync} from 'node:fs';
+import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {homedir} from 'node:os';
 import type {Agent} from '../types.js';
@@ -22,6 +22,11 @@ export interface InstallLocation {
  *
  * "global" = `~/.config/opencode/skills/<skill>` (user home, applies to all projects)
  * "local"  = `./.opencode/skills/<skill>` (cwd, project-specific)
+ *
+ * existsSync follows symlinks: a valid symlink to an existing target
+ * returns true, a broken symlink returns false. That matches the
+ * intent (we want to know if the user can use the skill, not whether
+ * the symlink file itself is present).
  */
 export function getInstallState(skillName: string, agent: Agent): InstallState {
   const loc = getInstallLocation(skillName, agent);
@@ -38,38 +43,9 @@ export function getInstallLocation(skillName: string, agent: Agent): InstallLoca
   const localPath = join(cwd, agent.project_dir, skillName);
 
   return {
-    global: pathExistsOrIsLink(globalPath),
-    local: pathExistsOrIsLink(localPath),
+    global: existsSync(globalPath),
+    local: existsSync(localPath),
     globalPath,
     localPath,
   };
-}
-
-function pathExistsOrIsLink(p: string): boolean {
-  if (existsSync(p)) return true;
-  // existsSync follows symlinks; if the symlink is broken, it returns false.
-  // Try realpath which also follows but might succeed if the target exists.
-  try {
-    realpathSync(p);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Compute install state for a skill across all agents.
- * Returns the first non-'not-installed' state found.
- */
-export function getAggregateInstallState(
-  skillName: string,
-  agents: Agent[],
-): {state: InstallState; agentId?: string} {
-  for (const agent of agents) {
-    const state = getInstallState(skillName, agent);
-    if (state !== 'not-installed') {
-      return {state, agentId: agent.id};
-    }
-  }
-  return {state: 'not-installed'};
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Box, Text, useInput} from 'ink';
+import {Box, Text} from 'ink';
 import type {InstallPhase} from '../hooks/useInstallQueue.js';
 
 interface ResultViewProps {
@@ -8,12 +8,11 @@ interface ResultViewProps {
   onQuit: () => void;
 }
 
+/**
+ * Pure renderer. Keybindings (Enter/Esc/q) are handled in App.tsx via
+ * its single screen-filtered useInput. Doing them here would double-fire.
+ */
 export default function ResultView({phases, onBack, onQuit}: ResultViewProps) {
-  useInput((input, key) => {
-    if (key.return) onBack();
-    if (input === 'q' || key.escape) onQuit();
-  });
-
   const succeeded = phases.filter(p => p.status === 'done').length;
   const failed = phases.filter(p => p.status === 'error').length;
 

@@ -17,7 +17,7 @@ const FOOTER_HINTS: Record<Screen, string[]> = {
   browse: ['[Space] toggle', '[i/Enter] install', '[h] collapse', '[q] quit'],
   'phase-config': ['[Space] targets', '[s] scope', '[d] deps', '[Enter] run', '[Esc] back'],
   executing: ['[Ctrl+C] cancel'],
-  result: ['[Enter] back', '[q] quit'],
+  result: ['[Enter] back', '[Esc] back', '[q] quit'],
 };
 
 export default function App() {
@@ -71,12 +71,11 @@ export default function App() {
     return map;
   }, [flatSkills]);
 
-  // Clamp cursor when flatSkills shrinks
-  useEffect(() => {
-    if (cursor >= flatSkills.length && flatSkills.length > 0) {
-      setCursor(flatSkills.length - 1);
-    }
-  }, [flatSkills.length, cursor]);
+  // Clamp cursor inside the render so children always see a valid index.
+  const safeCursor =
+    flatSkills.length === 0
+      ? 0
+      : Math.max(0, Math.min(cursor, flatSkills.length - 1));
 
   // When entering phase-config, build default configs from selectedSkills
   const enterPhaseConfig = useCallback(() => {
@@ -105,8 +104,8 @@ export default function App() {
     return configsToPhases(configs, sources);
   }, [configs, sources]);
 
-  // Wire useInstallQueue — but only initialize when we actually enter executing
-  const queue = useInstallQueue(
+  // Wire useInstallQueue. The hook only starts when `enabled` is true.
+  const installQueue = useInstallQueue(
     installPhases.map((p, i) => {
       const cfg = configs[i];
       return {
@@ -122,25 +121,22 @@ export default function App() {
         code: null,
       } as InstallPhase;
     }),
+    screen === 'executing',
   );
 
   // Watch queue completion
   useEffect(() => {
-    if (queue.allDone && screen === 'executing') {
+    if (installQueue.allDone && screen === 'executing') {
       setScreen('result');
     }
-  }, [queue.allDone, screen]);
+  }, [installQueue.allDone, screen]);
 
-  // Global keybindings
+  // Single global useInput. Each branch filters by current screen.
+  // - browse: arrow keys / jk / Space / i / Enter / q
+  // - executing: Ctrl+C
+  // - result: Enter / Esc -> back, q -> quit
+  // - phase-config: PhaseConfig owns its own useInput (we skip here)
   useInput((input, key) => {
-    if (input === 'q') exit();
-    if (key.ctrl && input === 'c' && screen === 'executing') {
-      queue.cancel();
-      setScreen('result');
-    }
-    if (screen === 'browse' && (input === 'i' || key.return)) {
-      if (selectedSkills.size > 0) enterPhaseConfig();
-    }
     if (screen === 'browse') {
       if (key.upArrow || input === 'k') {
         setCursor(c => Math.max(0, c - 1));
@@ -150,11 +146,40 @@ export default function App() {
       }
       if (input === ' ') {
         if (flatSkills.length === 0) return;
-        const {skill} = flatSkills[cursor];
+        const {skill} = flatSkills[safeCursor];
+        if (!skill) return;
         const next = new Set(selectedSkills);
         if (next.has(skill)) next.delete(skill);
         else next.add(skill);
         setSelectedSkills(next);
+      }
+      if (input === 'i' || key.return) {
+        if (selectedSkills.size > 0) enterPhaseConfig();
+      }
+      if (input === 'q') {
+        exit();
+        return;
+      }
+    }
+
+    if (screen === 'executing') {
+      if (key.ctrl && input === 'c') {
+        installQueue.cancel();
+        setScreen('result');
+        return;
+      }
+    }
+
+    if (screen === 'result') {
+      if (key.return || key.escape) {
+        setScreen('browse');
+        setSelectedSkills(new Set());
+        setConfigs([]);
+        return;
+      }
+      if (input === 'q') {
+        exit();
+        return;
       }
     }
   });
@@ -187,8 +212,8 @@ export default function App() {
       <Header
         screen={screen}
         source={
-          screen === 'browse' && flatSkills[cursor]
-            ? flatSkills[cursor].sourceId
+          screen === 'browse' && flatSkills[safeCursor]
+            ? flatSkills[safeCursor].sourceId
             : '—'
         }
       />
@@ -209,9 +234,7 @@ export default function App() {
                 agents={agents}
                 selected={selectedSkills}
                 onChange={setSelectedSkills}
-                isFocused={true}
-                globalCursor={cursor}
-                onCursorChange={setCursor}
+                globalCursor={safeCursor}
                 startIndex={sourceStartIdx.get(src.id) ?? 0}
               />
             );
@@ -242,12 +265,15 @@ export default function App() {
       )}
 
       {screen === 'executing' && (
-        <ProgressView phases={queue.phases} currentIdx={queue.currentIdx} />
+        <ProgressView
+          phases={installQueue.phases}
+          currentIdx={installQueue.currentIdx}
+        />
       )}
 
       {screen === 'result' && (
         <ResultView
-          phases={queue.phases}
+          phases={installQueue.phases}
           onBack={() => {
             setScreen('browse');
             setSelectedSkills(new Set());
