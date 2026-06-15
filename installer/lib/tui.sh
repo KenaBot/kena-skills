@@ -269,10 +269,18 @@ interactive_main() {
     echo ""
   fi
 
-  # Step 1: detect agents
+  # Step 1: detect agents. Avoid 'mapfile' (bash 4+) so this works
+  # on macOS's default bash 3.2.
   info "Step 1/3: Detecting installed agents..."
-  mapfile -t DETECTED < <(detect_installed_agents)
-  mapfile -t ALL_SUPPORTED < <(list_supported_agents)
+  local -a DETECTED=()
+  local _line
+  while IFS= read -r _line; do
+    DETECTED+=("$_line")
+  done < <(detect_installed_agents)
+  local -a ALL_SUPPORTED=()
+  while IFS= read -r _line; do
+    ALL_SUPPORTED+=("$_line")
+  done < <(list_supported_agents)
 
   if [ ${#ALL_SUPPORTED[@]} -eq 0 ]; then
     err "No supported agents in registry. Check installer/lib/agents.json"
@@ -307,10 +315,15 @@ interactive_main() {
     selected_targets+=("$agent")
   done
 
-  # Step 3: list skills
+  # Step 3: list skills. Avoid 'mapfile' (bash 4+) so this works
+  # on macOS's default bash 3.2.
   echo ""
   info "Step 3/3: Select a skill to install:"
-  mapfile -t SKILLS < <(list_skill_names "$skills_dir")
+  local -a SKILLS=()
+  local _skill_line
+  while IFS= read -r _skill_line; do
+    SKILLS+=("$_skill_line")
+  done < <(list_skill_names "$skills_dir")
   if [ ${#SKILLS[@]} -eq 0 ]; then
     err "No skills found in $skills_dir"
     exit 1

@@ -176,13 +176,19 @@ check_skill_mcps() {
     fi
   done < "$pkg_json"
 
-  # For each required dep, check if it's an MCP and install/verify
+  # For each required dep, check if it's an MCP and install/verify.
+  # Read the MCP list ONCE (not per dep) and avoid 'mapfile' (bash 4+)
+  # so this works on macOS's default bash 3.2.
+  local -a all_mcps
+  local _mcp_line
+  while IFS= read -r _mcp_line; do
+    all_mcps+=("$_mcp_line")
+  done < <(list_mcp_ids)
+
   local failed=0
   for dep in "${required[@]}"; do
     if [ -z "$dep" ]; then continue; fi
     # Check if this dep is a known MCP
-    local -a all_mcps
-    mapfile -t all_mcps < <(list_mcp_ids)
     local is_mcp=false
     for m in "${all_mcps[@]}"; do
       if [ "$m" = "$dep" ]; then

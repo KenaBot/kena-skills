@@ -186,7 +186,12 @@ fi
 if [ -n "$SKILL" ]; then
   if [ -z "$TARGETS" ]; then
     info "No targets specified. Detecting installed agents..."
-    mapfile -t DETECTED < <(detect_installed_agents)
+    # Avoid 'mapfile' (bash 4+) so this works on macOS's bash 3.2.
+    local -a DETECTED=()
+    local _agent_line
+    while IFS= read -r _agent_line; do
+      DETECTED+=("$_agent_line")
+    done < <(detect_installed_agents)
     if [ ${#DETECTED[@]} -eq 0 ]; then
       err "No supported agents detected. Pass --target explicitly."
       exit 1
@@ -231,7 +236,12 @@ install_all_default_skills() {
 
 if [ "$INSTALL_ALL" = true ]; then
   if [ -z "$TARGETS" ]; then
-    mapfile -t DETECTED < <(detect_installed_agents)
+    # Avoid 'mapfile' (bash 4+) so this works on macOS's bash 3.2.
+    local -a DETECTED=()
+    local _agent_line
+    while IFS= read -r _agent_line; do
+      DETECTED+=("$_agent_line")
+    done < <(detect_installed_agents)
     TARGETS="${DETECTED[*]}"
     TARGETS="${DETECTED[*]// /,}"
   fi

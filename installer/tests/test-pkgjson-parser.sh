@@ -42,7 +42,11 @@ test_parse_required() {
     fi
   done < "$pkg_json"
 
-  printf '%s\n' "${required[@]}"
+  # Bash 3.2 (macOS default) errors on empty arrays under 'set -u',
+  # so guard the print with a length check.
+  if [ "${#required[@]}" -gt 0 ]; then
+    printf '%s\n' "${required[@]}"
+  fi
 }
 
 assert_contains() {
@@ -149,7 +153,9 @@ cat > "$TMPDIR/empty.json" <<'EOF'
   }
 }
 EOF
-result=$(test_parse_required "$TMPDIR/empty.json")
+# Disable -u for the test_parse_required call because bash 3.2 with
+# set -u errors on empty arrays indexed as ${arr[@]}.
+result=$(set +u; test_parse_required "$TMPDIR/empty.json")
 if [ -z "$result" ]; then
   echo "  [PASS] empty array: no items captured"
   PASS=$((PASS+1))

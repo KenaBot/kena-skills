@@ -219,9 +219,13 @@ check_and_install_deps() {
     return 0
   fi
 
-  # Filter to system deps only (not MCPs)
+  # Filter to system deps only (not MCPs). Avoid 'mapfile' (bash 4+)
+  # so the installer works on macOS's default bash 3.2.
   local -a all_mcps
-  mapfile -t all_mcps < <(list_mcp_ids)
+  local _mcp_line
+  while IFS= read -r _mcp_line; do
+    all_mcps+=("$_mcp_line")
+  done < <(list_mcp_ids)
   local -a sys_deps=()
   for dep in "${required[@]}"; do
     local is_mcp=false
