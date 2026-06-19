@@ -51,14 +51,17 @@ install_dep() {
       ;;
     graphify)
       info "Installing graphify via uv..."
+      if ! command -v uv >/dev/null 2>&1 && ! command -v pipx >/dev/null 2>&1; then
+        install_dep uv || { err "Install uv or pipx first, then: uv tool install graphify"; return 1; }
+      fi
       if command -v uv >/dev/null 2>&1; then
-        uv tool install graphifyy
+        uv tool install graphify
         return $?
       elif command -v pipx >/dev/null 2>&1; then
-        pipx install graphifyy
+        pipx install graphify
         return $?
       fi
-      err "Install uv or pipx first, then: uv tool install graphifyy"
+      err "Install uv or pipx first, then: uv tool install graphify"
       return 1
       ;;
     *)

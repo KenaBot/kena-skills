@@ -61,7 +61,7 @@ elif [ -d "$HOME/AppData/Roaming/uv/tools/graphify" ] || [ -d "/c/Users/$USER/Ap
 else
   echo "  [WARN] graphify: not found"
   echo "         Phase 3 (code map) will use --no-graph fallback."
-  echo "         Install: uv tool install graphifyy"
+  echo "         Install: uv tool install graphify"
 fi
 
 # python3 (needed by graphify and tests)
