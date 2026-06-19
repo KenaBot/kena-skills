@@ -24,7 +24,7 @@
       "description": "Skills for Real Engineers by Matt Pocock (128k stars)",
       "npx_args": "mattpocock/skills",
       "available_skills": [
-        "diagnose",
+        "diagnosing-bugs",
         "grill-me",
         "grill-with-docs",
         "tdd",
@@ -39,8 +39,8 @@
         "teach",
         "write-a-skill"
       ],
-      "visible_skills": ["diagnose", "grill-me"],
-      "default_skills": ["diagnose", "grill-me"],
+      "visible_skills": ["diagnosing-bugs", "grill-me"],
+      "default_skills": ["diagnosing-bugs", "grill-me"],
       "requires": "npx skills@latest",
       "enabled": true
     }

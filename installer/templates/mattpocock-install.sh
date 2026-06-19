@@ -8,7 +8,7 @@ echo "Validating mattpocock/skills installation..."
 echo ""
 
 # Check that the canonical skills landed somewhere
-declare -a SAMPLE_SKILLS=("diagnose" "grill-me")
+declare -a SAMPLE_SKILLS=("diagnosing-bugs" "grill-me")
 found=0
 
 for skill in "${SAMPLE_SKILLS[@]}"; do
