@@ -33,7 +33,7 @@ if check_mcp "claude-mem"; then
   fi
 else
   echo "  [MISSING] claude-mem is NOT installed"
-  echo "  Install with: npx -y @thedotmack/claude-mem install"
+  echo "  Install with: npx -y claude-mem install"
   echo "  Or: kena-skills --mcp claude-mem --install-deps"
 fi
 

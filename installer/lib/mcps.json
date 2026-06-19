@@ -7,10 +7,11 @@
       "name": "Claude Memory",
       "description": "Cross-session memory for AI agents via MCP",
       "type": "npx-plugin",
-      "package": "@thedotmack/claude-mem",
-      "install_command": "npx -y @thedotmack/claude-mem install",
+      "package": "claude-mem",
+      "install_command": "npx -y claude-mem install",
       "verify_paths": [
         "$HOME/.npm/_npx/*/node_modules/claude-mem",
+        "$HOME/.claude/plugins/marketplaces/thedotmack",
         "$HOME/.claude/plugins/data/claude-mem-thedotmack"
       ],
       "required_by": ["deepsearch"],

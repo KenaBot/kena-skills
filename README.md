@@ -169,7 +169,7 @@ The installer auto-adapts:
 | `deepsearch` | kena-skills | symlink to your discovery dir |
 | `caveman` | juliusbrussee-caveman | upstream `curl \| bash` (handles 30+ agents) |
 | `diagnose`, `grill-me` | mattpocock-skills | `npx skills@latest add` |
-| MCP `claude-mem` | @thedotmack/claude-mem | `npx` plugin (required by `deepsearch`) |
+| MCP `claude-mem` | claude-mem (Alex Newman) | `npx` plugin (required by `deepsearch`) |
 
 ---
 
