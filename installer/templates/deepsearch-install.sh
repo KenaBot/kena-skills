@@ -54,14 +54,14 @@ fi
 # graphify
 if command -v graphify >/dev/null 2>&1; then
   echo "  [OK] graphify: found (PATH)"
-elif [ -d "$HOME/.local/share/uv/tools/graphify" ]; then
+elif [ -d "$HOME/.local/share/uv/tools/graphifyy" ]; then
   echo "  [OK] graphify: found (uv tool)"
-elif [ -d "$HOME/AppData/Roaming/uv/tools/graphify" ] || [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphify" ]; then
+elif [ -d "$HOME/AppData/Roaming/uv/tools/graphifyy" ] || [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphifyy" ]; then
   echo "  [OK] graphify: found (uv tool, Windows)"
 else
   echo "  [WARN] graphify: not found"
   echo "         Phase 3 (code map) will use --no-graph fallback."
-  echo "         Install: uv tool install graphify"
+  echo "         Install: uv tool install graphifyy"
 fi
 
 # python3 (needed by graphify and tests)

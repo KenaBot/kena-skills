@@ -15,12 +15,12 @@ check_dep() {
       ;;
     graphify)
       command -v graphify >/dev/null 2>&1 && return 0
-      [ -d "$HOME/.local/share/uv/tools/graphify" ] && return 0
-      [ -d "$HOME/.local/pipx/venvs/graphify" ] && return 0
+      [ -d "$HOME/.local/share/uv/tools/graphifyy" ] && return 0
+      [ -d "$HOME/.local/pipx/venvs/graphifyy" ] && return 0
       # Windows paths (Git Bash with /c/Users/... style)
-      [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphify" ] && return 0
+      [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphifyy" ] && return 0
       [ -d "/c/Users/$USER/.local/bin/graphify.exe" ] && return 0
-      [ -n "${USERPROFILE:-}" ] && [ -d "$USERPROFILE/AppData/Roaming/uv/tools/graphify" ] && return 0
+      [ -n "${USERPROFILE:-}" ] && [ -d "$USERPROFILE/AppData/Roaming/uv/tools/graphifyy" ] && return 0
       return 1
       ;;
     *)
@@ -52,16 +52,16 @@ install_dep() {
     graphify)
       info "Installing graphify via uv..."
       if ! command -v uv >/dev/null 2>&1 && ! command -v pipx >/dev/null 2>&1; then
-        install_dep uv || { err "Install uv or pipx first, then: uv tool install graphify"; return 1; }
+        install_dep uv || { err "Install uv or pipx first, then: uv tool install graphifyy"; return 1; }
       fi
       if command -v uv >/dev/null 2>&1; then
-        uv tool install graphify
+        uv tool install graphifyy
         return $?
       elif command -v pipx >/dev/null 2>&1; then
-        pipx install graphify
+        pipx install graphifyy
         return $?
       fi
-      err "Install uv or pipx first, then: uv tool install graphify"
+      err "Install uv or pipx first, then: uv tool install graphifyy"
       return 1
       ;;
     *)
