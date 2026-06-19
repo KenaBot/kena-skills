@@ -18,10 +18,9 @@ check_dep() {
       [ -d "$HOME/.local/share/uv/tools/graphify" ] && return 0
       [ -d "$HOME/.local/pipx/venvs/graphify" ] && return 0
       # Windows paths (Git Bash with /c/Users/... style)
-      [ -d "$HOME/.local/share/uv/tools/graphify" ] && return 0
       [ -d "/c/Users/$USER/AppData/Roaming/uv/tools/graphify" ] && return 0
       [ -d "/c/Users/$USER/.local/bin/graphify.exe" ] && return 0
-      [ -d "$USERPROFILE/AppData/Roaming/uv/tools/graphify" ] && return 0
+      [ -n "${USERPROFILE:-}" ] && [ -d "$USERPROFILE/AppData/Roaming/uv/tools/graphify" ] && return 0
       return 1
       ;;
     *)
